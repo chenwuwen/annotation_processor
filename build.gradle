@@ -70,7 +70,7 @@ publishing {
 
 
 sourceCompatibility = 1.8
-sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 //解决Gradle  编码GBK的不可映射字符 错误
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
