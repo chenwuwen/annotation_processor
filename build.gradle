@@ -1,0 +1,102 @@
+//需要注意的是：如果其他项目引用到了该依赖：
+// 如果是maven项目,在依赖中添加 <scope>provided</scope> 
+//如果是gradle(gradle5版本之后)项目,在依赖中使用annotationProcessor和compile进行引入(也就是引入两次)
+
+
+buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        jcenter()
+        maven { url "https://repository.sonatype.org/content/groups/forge/" }
+        maven { url "http://repository.jboss.org/nexus/content/groups/public/" }
+        maven { url "http://maven.springframework.org/release/" }
+        maven { url 'https://repo.spring.io/libs-milestone' }
+    }
+    dependencies {
+    }
+}
+
+//使用plugin{}/apply plugin: 都是gradle添加插件的方式,效果一样
+
+plugins {
+    id 'java'
+//    上传到maven仓库(本地仓库和远程仓库),同时也会多出push的相关命令
+    id 'maven-publish'
+}
+
+apply plugin: 'java'
+apply plugin: 'idea'
+//使用该插件,将会出现gradlew install命令,此命令会将jar包打进本地maven仓库(前提是配置了maven的环境变量,maven的环境变量名称应为M2_HOME)
+//具体依赖位置,则取决于maven的配置文件settings.xml
+apply plugin: 'maven'
+
+group 'cn.kanyun'
+version '1.0-SNAPSHOT'
+
+task sourcesJar(type: Jar) {
+    from sourceSets.main.allJava
+    archiveClassifier = 'sources'
+}
+
+//上传依赖到远程maven仓库配置,上传时使用命令 gradlew publishMavenPublicationToMavenRepository
+publishing {
+    publications {
+        maven(MavenPublication) {
+//            指定group/artifact/version信息，可以不填。默认使用项目group/name/version作为groupId/artifactId/version
+            groupId = project.getGroup()
+            artifactId = project.getName()
+            version = project.getVersion()
+//            如果是war包填写components.web，如果是jar包填写components.java
+            from components.java
+
+        }
+    }
+
+
+    repositories {
+        maven {
+            //指定要上传的maven私服仓库
+            url = "http://jenkins.maxrocky.com:8080/maven/content/repositories/thirdparty/"
+            //认证用户和密码
+            credentials {
+                username 'admin'
+                password 'maxrocky5721'
+            }
+        }
+    }
+}
+
+
+
+sourceCompatibility = 1.8
+sourceCompatibility = 1.8
+
+//解决Gradle  编码GBK的不可映射字符 错误
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    jcenter()
+    maven { url "https://repository.sonatype.org/content/groups/forge/" }
+    maven { url "http://repository.jboss.org/nexus/content/groups/public/" }
+    maven { url "http://maven.springframework.org/release/" }
+    maven { url 'https://repo.spring.io/libs-milestone' }
+}
+
+dependencies {
+//    这个依赖的是项目Libs目录下的tool.jar,这个jar包是从${JAVA_HOME}处复制过来的,我使用的JDK版本为1.8
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+//    声明注解处理器的注解,用于代替手动编辑resources/META-INF/services的文件
+    compile group: 'com.google.auto.service', name: 'auto-service', version: '1.0-rc6'
+//    这行配置也需要添加,gradle升级到5之后,不加此配置,不会生成META-INF/services/javax.annotation.processing.Processor文件
+    annotationProcessor group: 'com.google.auto.service', name: 'auto-service', version: '1.0-rc6'
+//    使用Square公司的开源类库JavaPoet可以生成Java文件，JavaWrite现在已经被JavaPoet取代了
+    compile group: 'com.squareup', name: 'javapoet', version: '1.11.1'
+    // https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
+    compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.9'
+
+
+}
