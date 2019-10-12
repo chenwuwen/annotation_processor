@@ -87,16 +87,16 @@ repositories {
 
 dependencies {
 //    这个依赖的是项目Libs目录下的tool.jar,这个jar包是从${JAVA_HOME}处复制过来的,我使用的JDK版本为1.8
-    compile fileTree(dir: 'libs', include: ['*.jar'])
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
     testCompile group: 'junit', name: 'junit', version: '4.12'
 //    声明注解处理器的注解,用于代替手动编辑resources/META-INF/services的文件
-    compile group: 'com.google.auto.service', name: 'auto-service', version: '1.0-rc6'
+    implementation group: 'com.google.auto.service', name: 'auto-service', version: '1.0-rc6'
 //    这行配置也需要添加,gradle升级到5之后,不加此配置,不会生成META-INF/services/javax.annotation.processing.Processor文件
     annotationProcessor group: 'com.google.auto.service', name: 'auto-service', version: '1.0-rc6'
 //    使用Square公司的开源类库JavaPoet可以生成Java文件，JavaWrite现在已经被JavaPoet取代了
-    compile group: 'com.squareup', name: 'javapoet', version: '1.11.1'
+    implementation group: 'com.squareup', name: 'javapoet', version: '1.11.1'
     // https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
-    compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.9'
+    implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.9'
 
 
 }
