@@ -30,47 +30,133 @@ apply plugin: 'idea'
 //使用该插件,将会出现gradlew install命令,此命令会将jar包打进本地maven仓库(前提是配置了maven的环境变量,maven的环境变量名称应为M2_HOME)
 //具体依赖位置,则取决于maven的配置文件settings.xml
 apply plugin: 'maven'
+//    签名插件,上传到中央仓库的release版本的依赖需要签名
+apply plugin: 'signing'
 
 group 'cn.kanyun'
-version '1.0-SNAPSHOT'
+version '1.0.0'
 
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+//源码打包
 task sourcesJar(type: Jar) {
     from sourceSets.main.allJava
     archiveClassifier = 'sources'
 }
 
+tasks.withType(JavaCompile) {
+    options.encoding = "UTF-8"
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    archiveClassifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+
+tasks.withType(Javadoc) {
+    options.addStringOption('Xdoclint:none', '-quiet')
+    options.addStringOption('encoding', 'UTF-8')
+    options.addStringOption('charSet', 'UTF-8')
+    options.author = true
+    options.version = true
+    options.header = project.name
+
+}
+
+/**
+ * 默认使用gradlew clean install命令时,仅仅只是安装编译好的包,源码包
+ * 是不会安装到maven仓库的,添加此配置可以将源码包打入到本地maven仓库
+ * doc包也可以如法炮制
+ */
+artifacts {
+    archives sourcesJar
+    archives javadocJar
+}
+
+//   设置任务依赖关系,打jar包的同时,打源码包
+jar.dependsOn(sourcesJar)
+
 //上传依赖到远程maven仓库配置,上传时使用命令 gradlew publishMavenPublicationToMavenRepository
 publishing {
     publications {
-        maven(MavenPublication) {
-//            指定group/artifact/version信息，可以不填。默认使用项目group/name/version作为groupId/artifactId/version
-            groupId = project.getGroup()
-            artifactId = project.getName()
-            version = project.getVersion()
+        mavenJava(MavenPublication) {
 //            如果是war包填写components.web，如果是jar包填写components.java
             from components.java
+//            指定group/artifact/version信息，可以不填。默认使用项目group/name/version作为groupId/artifactId/version
+//            groupId需要注意一下,如果下面仓库的配置是oss.sonatype.org(即中央仓库),那么这里的groupId必须为你在sonatype中申请的ISSUE中设置的ID,如果不是,执行gradlew publish命令会报403错误
+            groupId "io.github.chenwuwen"
+            artifactId "$project.name"
+            version "$version"
+//             增加这个签名名称所在的位置，signArchives 输出文件中以你项目名作为的 key。这里获取这一个签名文件
+//            artifact signArchives.outputFiles.get('fast_csv')
+            artifact(sourcesJar) {
+                classifier = 'sources'
+//                extension = "zip"
+            }
+            artifact(javadocJar){
+                classifier = 'javadoc'
+            }
 
-        }
-    }
 
+//          添加 pom 相关信息,没有pom信息无法发布release版本
+            pom {
+                name = "annotation_processor"
+                description = "注解处理器,在方法上添加@TakeTime注解,可以打印出该方法执行时长"
+                url = "https://chenwuwen.github.io/"
+                licenses {
+                    license {
+                        name = "The Apache License, Version 2.0"
+                        url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                    }
+                }
+                developers {
+                    developer {
+                        id = "kanyun"
+                        name = "wuwen Chen"
+                        email = "2504954849@qq.com"
+                    }
+                }
+                scm {
+                    connection = "scm:git:https://github.com/chenwuwen/annotation_processor.git"
+                    developerConnection = "scm:git:https://github.com/chenwuwen/annotation_processor.git"
+                    url = "https://github.com/chenwuwen/annotation_processor"
+                }
 
-    repositories {
-        maven {
-            //指定要上传的maven私服仓库
-            url = "http://jenkins.maxrocky.com:8080/maven/content/repositories/thirdparty/"
-            //认证用户和密码
-            credentials {
-                username 'admin'
-                password 'maxrocky5721'
             }
         }
     }
+    repositories {
+        maven {
+            if (project.version.endsWith('-SNAPSHOT')) {
+//                快照版本地址
+//            这里如果配置的是sonatype(中央仓库的地址),需要注意上方的groupId,应该跟sonatype中的对应的ISSUE中设置的Group Id 一致
+                url "https://oss.sonatype.org/content/repositories/snapshots"
+            } else {
+//                正式版本地址
+//                这里如果配置的是sonatype(中央仓库的地址),需要注意上方的groupId,应该跟sonatype中的对应的ISSUE中设置的Group Id 一致
+                url "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+            }
+            credentials {
+//                这里的变量是配置在操作系统的GRADLE_USER_HOME环境变量下的gradle.properties中,如果操作系统未配置该变量,那么gradle.properties应该在${USER_HOME}/.gradle下
+                username = "${NEXUS_USERNAME}"
+                password = "${NEXUS_PASSWORD}"
+            }
+        }
+
+    }
+}
+
+//签名配置 必须在 publishing 配置之后 上传release版本的构件需要此配置,其中私钥配置在操作系统的GRADLE_USER_HOME环境变量下的gradle.properties中
+signing {
+//    后面这个mavenJava需要跟上面的publishing{publications{}}下面的保持一致
+    sign publishing.publications.mavenJava
 }
 
 
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+
 
 //解决Gradle  编码GBK的不可映射字符 错误
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'

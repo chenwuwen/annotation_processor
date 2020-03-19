@@ -196,7 +196,7 @@ public class TakeTimeProcessor extends AbstractProcessor {
 
     /**
      * 方法增强
-     *
+     * 即在编译时更改方法中的内容
      * @param jcTree
      * @param methodName 方法的全限定名
      * @param tag        标识
